@@ -3,8 +3,11 @@ module github.com/FatSong207/common
 go 1.25.2
 
 require (
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	gorm.io/driver/mysql v1.6.0
+	gorm.io/gen v0.3.27
 	gorm.io/gorm v1.31.1
+	gorm.io/plugin/opentelemetry v0.1.16
 )
 
 require (
@@ -45,8 +48,6 @@ require (
 	gorm.io/datatypes v1.2.4 // indirect
 	gorm.io/driver/clickhouse v0.7.0 // indirect
 	gorm.io/driver/postgres v1.5.11 // indirect
-	gorm.io/gen v0.3.27 // indirect
 	gorm.io/hints v1.1.0 // indirect
 	gorm.io/plugin/dbresolver v1.5.0 // indirect
-	gorm.io/plugin/opentelemetry v0.1.16 // indirect
 )
