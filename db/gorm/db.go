@@ -28,6 +28,11 @@ func NewDB(dsn string, opts ...Option) *DB {
 	return s
 }
 
+// DB 取得底層 *gorm.DB
+func (d *DB) DB() *gorm.DB {
+	return d.db
+}
+
 type Option func(db *DB)
 
 // WithTracing Enable tracing
