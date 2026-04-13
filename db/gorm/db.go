@@ -7,6 +7,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 	"gorm.io/plugin/opentelemetry/tracing"
 )
 
@@ -29,11 +30,19 @@ func NewDB(dsn string, opts ...Option) *DB {
 
 type Option func(db *DB)
 
+// WithTracing Enable tracing
 func WithTracing() Option {
 	return func(db *DB) {
 		if err := db.db.Use(tracing.NewPlugin(tracing.WithoutMetrics())); err != nil {
 			log.Fatalf("failed to use tracing plugin: %v", err)
 		}
+	}
+}
+
+// WithMigration 遷移
+func WithMigration(models ...schema.Tabler) Option {
+	return func(db *DB) {
+		MustAutoMigrate(db.db, models...)
 	}
 }
 
