@@ -11,7 +11,7 @@ import (
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-// Body 統一回應結構
+// Body unified API response structure
 type Body struct {
 	Code int         `json:"code"`
 	Msg  string      `json:"msg"`
@@ -19,59 +19,79 @@ type Body struct {
 }
 
 func init() {
-	// 全局錯誤攔截器
+	// Global error handler
 	httpx.SetErrorHandler(func(err error) (int, interface{}) {
 		var body Body
 		var statusCode int
 
-		// 記錄詳細錯誤到 Log 檔案與終端機，免得被吃掉
-		logx.Errorf("API Request Error: %+v", err)
+		// Log detailed error for debugging purposes
+		logx.Errorf("API request error: %+v", err)
 
-		// 先嘗試看是不是自訂業務錯誤 CodeError
+		// Try custom business error first
 		switch e := err.(type) {
 		case *errorx.CodeError:
 			body.Code = e.Code
 			body.Msg = e.Msg
 			statusCode = e.HttpStatusCode()
 		default:
-			// 再嘗試看是不是從 RPC 傳過來的 gRPC 錯誤
+			// Check if it's a gRPC error from RPC calls
 			if rpcErr := errorx.FromGrpcError(err); rpcErr != nil && rpcErr.Code != errorx.ServerError {
 				body.Code = rpcErr.Code
 				body.Msg = rpcErr.Msg
 				statusCode = rpcErr.HttpStatusCode()
 			} else {
-				// 處理 HTTP Request Body 缺失、格式解析失敗、或欄位驗證不過 (這不應該被當成內部 500 錯誤)
-				errStr := err.Error()
-				lowerErrStr := strings.ToLower(errStr)
-				isParamError := errStr == "EOF" ||
-					strings.Contains(lowerErrStr, "json") ||
-					strings.Contains(lowerErrStr, "parse") ||
-					strings.Contains(lowerErrStr, "is not set") ||
-					strings.Contains(lowerErrStr, "invalid") ||
-					strings.Contains(lowerErrStr, "mismatch")
-
-				if isParamError {
+				// Handle request body, parsing, and validation errors (not 500)
+				if isParamError(err) {
 					body.Code = errorx.ParamError
-					body.Msg = "Invalid Param： " + errStr
+					body.Msg = "Invalid request parameters"
 					statusCode = http.StatusBadRequest
 				} else {
-					// 真正的未知錯誤
+					// Unknown internal error
 					body.Code = errorx.ServerError
-					body.Msg = "Server Error"
+					body.Msg = "Internal server error"
 					statusCode = http.StatusInternalServerError
 				}
 			}
 		}
-		// 返回對應的 http status code, 與 json body
 		return statusCode, body
 	})
 
-	// 全局成功攔截器
+	// Global success handler
 	httpx.SetOkHandler(func(ctx context.Context, data interface{}) interface{} {
 		return Body{
 			Code: errorx.OK,
-			Msg:  "success",
+			Msg:  "Success",
 			Data: data,
 		}
 	})
+}
+
+// isParamError checks if the error is a parameter validation or parsing error
+func isParamError(err error) bool {
+	errStr := err.Error()
+	lowerErrStr := strings.ToLower(errStr)
+
+	paramErrorIndicators := []string{
+		"EOF",
+		"json",
+		"parse",
+		"is not set",
+		"invalid",
+		"mismatch",
+		"required",
+		"decode",
+		"unmarshal",
+	}
+
+	if errStr == "EOF" {
+		return true
+	}
+
+	for _, indicator := range paramErrorIndicators {
+		if strings.Contains(lowerErrStr, indicator) {
+			return true
+		}
+	}
+
+	return false
 }
