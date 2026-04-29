@@ -84,7 +84,7 @@ func TestConcurrency(t *testing.T) {
 	sf, _ := NewSnowflake(1, 1)
 
 	ids := make(map[int64]bool)
-	ch := make(chan int64, 1000)
+	ch := make(chan int64, 10000)
 	done := make(chan bool, 100)
 
 	// 100個 goroutine，每個生成100個ID
